@@ -1,0 +1,166 @@
+let gameType = '';
+let team = '';
+let oversLimit = 2;
+let innings = 1;
+let score = 0;
+let wickets = 0;
+let balls = 0;
+let target = null;
+let matchOver = false;
+let bowlingStyle = 'Fast';
+let bowler = 'K. Sharma';
+
+const bowlers = ['K. Sharma', 'A. Khan', 'R. Singh', 'M. Yadav', 'J. Patel'];
+
+function show(id) {
+  document.getElementById(id).classList.remove('hide');
+}
+
+function hide(id) {
+  document.getElementById(id).classList.add('hide');
+}
+
+function startGame(mode) {
+  gameType = mode;
+  oversLimit = mode === 'ODI' ? 5 : mode === 'IPL' ? 3 : 2;
+  hide('menu');
+  show('teamSelection');
+}
+
+function selectTeam(selectedTeam) {
+  team = selectedTeam;
+  hide('teamSelection');
+  show('toss');
+  document.getElementById('tossResult').textContent = `You selected ${team}.`;
+}
+
+function tossCoin() {
+  const userWins = Math.random() < 0.5;
+  const result = userWins ? 'You won the toss!' : 'Computer won the toss!';
+  document.getElementById('tossResult').textContent = result;
+
+  setTimeout(() => {
+    hide('toss');
+    show('game');
+    resetInnings();
+    document.getElementById('matchTitle').textContent = `${gameType} Match - ${team}`;
+    document.getElementById('teamName').textContent = `${team} Batting`;
+    document.getElementById('commentary').textContent = `Bowler: ${bowler}`;
+  }, 900);
+}
+
+function resetInnings() {
+  score = 0;
+  wickets = 0;
+  balls = 0;
+  target = null;
+  matchOver = false;
+  innings = 1;
+  bowlingStyle = 'Fast';
+  bowler = bowlers[Math.floor(Math.random() * bowlers.length)];
+  render();
+}
+
+function playShot(runs) {
+  if (matchOver) return;
+  if (innings === 2 && target !== null && score >= target) return;
+
+  let commentary = '';
+  const delivery = Math.random();
+
+  if (innings === 1) {
+    if (delivery < 0.08) {
+      wickets++;
+      commentary = `OUT! ${bowler} strikes!`;
+      moveBall('wicket');
+    } else if (delivery < 0.18) {
+      commentary = `${bowler} bowls a dot ball.`;
+      moveBall('dot');
+    } else {
+      score += runs;
+      commentary = shotText(runs);
+      moveBall(runs);
+    }
+  } else {
+    const pressure = target ? (target - score) / (oversLimit * 6 - balls + 1) : 0;
+    const wicketChance = 0.1 + Math.max(0, 0.12 - pressure * 0.02);
+
+    if (delivery < wicketChance) {
+      wickets++;
+      commentary = `OUT! ${bowler} gets the wicket!`;
+      moveBall('wicket');
+    } else if (delivery < 0.22) {
+      commentary = `${bowler} bowled a tight dot ball.`;
+      moveBall('dot');
+    } else {
+      const bonus = Math.random() < 0.2 ? 1 : 0;
+      score += runs + bonus;
+      commentary = bonus ? `Great running! ${shotText(runs + bonus)}` : shotText(runs);
+      moveBall(runs);
+    }
+  }
+
+  balls++;
+
+  if (balls % 6 === 0 && !matchOver) {
+    bowlingStyle = bowlingStyle === 'Fast' ? 'Spin' : 'Fast';
+    bowler = bowlers[Math.floor(Math.random() * bowlers.length)];
+    commentary += ` Over completed. ${bowler} will bowl next (${bowlingStyle}).`;
+  }
+
+  if (innings === 2 && target !== null && score >= target) {
+    commentary = `${team} won the match by ${10 - wickets} wicket${10 - wickets === 1 ? '' : 's'}!`;
+    matchOver = true;
+  }
+
+  if (!matchOver && (wickets >= 10 || balls >= oversLimit * 6)) {
+    if (innings === 1) {
+      target = score + 1;
+      innings = 2;
+      score = 0;
+      wickets = 0;
+      balls = 0;
+      bowlingStyle = 'Fast';
+      bowler = bowlers[Math.floor(Math.random() * bowlers.length)];
+      commentary = `Innings break. Target is ${target}. ${bowler} will open the bowling.`;
+      document.getElementById('teamName').textContent = `Chasing ${target}`;
+    } else {
+      matchOver = true;
+      commentary = score >= target ? `${team} won the match!` : `Computer won the match by ${target - score - 1} runs!`;
+    }
+  }
+
+  document.getElementById('commentary').textContent = commentary;
+  render();
+}
+
+function shotText(runs) {
+  if (runs >= 6) return 'SIX!';
+  if (runs === 4) return 'FOUR!';
+  if (runs === 3) return '3 runs!';
+  if (runs === 2) return '2 runs!';
+  return '1 run!';
+}
+
+function moveBall() {
+  const ball = document.getElementById('ball');
+  ball.style.transition = 'all 0.35s ease';
+  ball.style.left = `${120 + Math.random() * 520}px`;
+  ball.style.bottom = `${60 + Math.random() * 120}px`;
+  setTimeout(() => {
+    ball.style.left = '120px';
+    ball.style.bottom = '90px';
+  }, 350);
+}
+
+function render() {
+  document.getElementById('score').textContent = `${score} / ${wickets}`;
+  document.getElementById('overs').textContent = `${Math.floor(balls / 6)}.${balls % 6}`;
+  document.getElementById('target').textContent = target ? target : '--';
+  document.getElementById('wickets').textContent = wickets;
+  document.getElementById('restartBtn').classList.toggle('hide', !matchOver);
+}
+
+function restartGame() {
+  location.reload();
+}
